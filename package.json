@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://10edna.github.io/mekahero-portfolio",
+  "homepage": "https://mekahero.com/",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

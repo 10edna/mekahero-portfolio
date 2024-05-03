@@ -28,19 +28,19 @@ let clipNames = [
 ];
 let projects = [
   {
-    image: 'textures/project-agmi.png',
+    image: '/textures/project-agmi.png',
     url: 'https://agmi.club/',
   },
   {
-    image: 'textures/project-axoverse.png',
+    image: '/textures/project-axoverse.png',
     url: 'https://axoverse.xyz/',
   },
   {
-    image: 'textures/project-condo.png',
+    image: '/textures/project-condo.png',
     url: 'https://www.condobase.xyz/',
   },
   {
-    image: 'textures/project-svad.png',
+    image: '/textures/project-svad.png',
     url: '/',
   },
 ];
@@ -114,18 +114,18 @@ controls.update();
 // LOAD MODEL & ASSET
 // const loadingManager = new THREE.LoadingManager();
 const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('draco/');
+dracoLoader.setDecoderPath('/draco/');
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
 gltfLoader.load(
-  'models/room.glb',
+  '/models/room.glb',
   function (room) {
     // hide loader on loade
     loaderWrapper.style.display = 'none';
 
     // load video
     const video = document.createElement('video');
-    video.src = 'textures/arcane.mp4';
+    video.src = '/textures/arcane.mp4';
     video.muted = true;
     video.playsInline = true;
     video.autoplay = true;
@@ -187,7 +187,7 @@ gltfLoader.load(
 
         // adding texture to book
         const bookTexture = new THREE.TextureLoader().load(
-          'textures/book-inner.png'
+          '/textures/book-inner.png'
         );
         bookTexture.flipY = false;
         child.material = new THREE.MeshStandardMaterial({
@@ -312,7 +312,7 @@ function animate() {
 
 function loadIntroText() {
   const loader = new FontLoader();
-  loader.load('fonts/unione.json', function (font) {
+  loader.load('/fonts/unione.json', function (font) {
     const textMaterials = [
       new THREE.MeshPhongMaterial({ color: 0x171f27, flatShading: true }),
       new THREE.MeshPhongMaterial({ color: 0xffffff }),
@@ -328,7 +328,7 @@ function loadIntroText() {
     scene.add(titleText);
   });
 
-  loader.load('fonts/helvatica.json', function (font) {
+  loader.load('/fonts/helvatica.json', function (font) {
     const textMaterials = [
       new THREE.MeshPhongMaterial({ color: 0x171f27, flatShading: true }),
       new THREE.MeshPhongMaterial({ color: 0xffffff }),
