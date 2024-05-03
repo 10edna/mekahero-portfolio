@@ -12,11 +12,11 @@ import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 // VARIABLES
 let theme = 'light';
 let bookCover = null;
-// let lightSwitch = null;
+let lightSwitch = null;
 let titleText = null;
 let subtitleText = null;
 let mixer;
-let isMobile = window.matchMedia('(max-width: 1000px)').matches;
+let isMobile = window.matchMedia('(max-width: 992px)').matches;
 let canvas = document.querySelector('.experience-canvas');
 const loaderWrapper = document.getElementById('loader-wrapper');
 let clipNames = [
@@ -28,21 +28,20 @@ let clipNames = [
 ];
 let projects = [
   {
-    image: 'textures/project-condo.png',
-    url: 'https://www.condobase.xyz/home.html',
-
-  },
-  {
     image: 'textures/project-agmi.png',
     url: 'https://agmi.club/',
   },
   {
-    image: 'textures/project-svad.png',
-    url: '/',
-  },
-  {
     image: 'textures/project-axoverse.png',
     url: 'https://axoverse.xyz/',
+  },
+  {
+    image: 'textures/project-condo.png',
+    url: 'https://www.condobase.xyz/',
+  },
+  {
+    image: 'textures/project-svad.png',
+    url: '/',
   },
 ];
 let aboutCameraPos = {
@@ -77,7 +76,7 @@ const camera = new THREE.PerspectiveCamera(
 let defaultCameraPos = {
   x: 1.009028643133046,
   y: 0.5463638814987481,
-  z: 0.4983449671971000,
+  z: 0.4983449671971262,
 };
 let defaultCamerRot = {
   x: -0.8313297556598935,
@@ -92,7 +91,13 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
+// STATS
+// const stats = new Stats();
+// document.querySelector('.experience').appendChild(stats.dom);
 
 // CONTROLS
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -107,7 +112,7 @@ controls.maxPolarAngle = Math.PI / 2;
 controls.update();
 
 // LOAD MODEL & ASSET
-
+// const loadingManager = new THREE.LoadingManager();
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('draco/');
 const gltfLoader = new GLTFLoader();
@@ -134,12 +139,16 @@ gltfLoader.load(
     videoTexture.encoding = THREE.sRGBEncoding;
 
     room.scene.children.forEach((child) => {
-
+      // disable shadow by wall
+      // if (child.name !== 'Wall') {
+      //   child.castShadow = true;
+      // }
+      // child.receiveShadow = true;
 
       if (child.children) {
         child.children.forEach((innerChild) => {
           // disable shadow by book cover & switch btn
-          if (innerChild.name !== 'Book001') {
+          if (innerChild.name !== 'Book001' && innerChild.name !== 'Switch') {
             innerChild.castShadow = true;
           }
           innerChild.receiveShadow = true;
@@ -150,14 +159,14 @@ gltfLoader.load(
         child.children[0].material = new THREE.MeshBasicMaterial({
           map: videoTexture,
         });
-        video.play();
+        // video.play();
       }
 
       // transparent texture for glass
       if (child.name === 'CPU') {
         child.children[0].material = new THREE.MeshPhysicalMaterial();
         child.children[0].material.roughness = 0;
-        // child.children[0].material.color.set(0x999999);
+        child.children[0].material.color.set(0x999999);
         child.children[0].material.ior = 3;
         child.children[0].material.transmission = 2;
         child.children[0].material.opacity = 0.8;
@@ -165,7 +174,7 @@ gltfLoader.load(
         child.children[0].material.depthTest = false;
         child.children[1].material = new THREE.MeshPhysicalMaterial();
         child.children[1].material.roughness = 0;
-        // child.children[1].material.color.set(0x999999);
+        child.children[1].material.color.set(0x999999);
         child.children[1].material.ior = 3;
         child.children[1].material.transmission = 1;
         child.children[1].material.opacity = 0.8;
@@ -186,10 +195,29 @@ gltfLoader.load(
           map: bookTexture,
         });
       }
+
+      if (child.name === 'SwitchBoard') {
+        lightSwitch = child.children[0];
+      }
     });
 
     scene.add(room.scene);
     animate();
+
+    // add animation
+    mixer = new THREE.AnimationMixer(room.scene);
+    const clips = room.animations;
+    clipNames.forEach((clipName) => {
+      const clip = THREE.AnimationClip.findByName(clips, clipName);
+      if (clip) {
+        const action = mixer.clipAction(clip);
+        action.play();
+      }
+    });
+
+    loadIntroText();
+
+    // add event listeners
     logoListener();
     aboutMenuListener();
     projectsMenuListener();
@@ -209,7 +237,7 @@ roomLight.position.set(0.3, 2, 0.5);
 roomLight.castShadow = true;
 roomLight.shadow.radius = 5;
 roomLight.shadow.mapSize.width = 2048;
-roomLight.shadow.mapSize.height = 2020;
+roomLight.shadow.mapSize.height = 2048;
 roomLight.shadow.camera.far = 2.5;
 // roomLight.shadow.camera.fov = 100;
 roomLight.shadow.bias = -0.002;
@@ -244,12 +272,39 @@ scene.add(pointLight2);
 scene.add(pointLight3);
 scene.add(pointLight4);
 
+// SETUP HELPERS
+// const axesHelper = new THREE.AxesHelper(5);
+// scene.add(axesHelper);
+// const gridHelper = new THREE.GridHelper(30, 30);
+// scene.add(gridHelper);
+// const shadowCameraHelper = new THREE.CameraHelper(roomLight.shadow.camera);
+// scene.add(shadowCameraHelper);
+// const pointLightHelper = new THREE.PointLightHelper(fanLight3, 0.03);
+// scene.add(pointLightHelper);
+
+// ADD GUI
+// const gui = new dat.GUI();
+// const options = {
+//   lightX: 0,
+//   lightY: 0.08,
+//   lightZ: 0,
+// };
+// gui.add(options, 'lightX').onChange((e) => {
+//   mobileLight.position.setX(e);
+// });
+// gui.add(options, 'lightY').onChange((e) => {
+//   mobileLight.position.setY(e);
+// });
+// gui.add(options, 'lightZ').onChange((e) => {
+//   mobileLight.position.setZ(e);
+// });
+
 const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
   // controls.update();
   if (mixer) {
-    // mixer.update(clock.getDelta());
+    mixer.update(clock.getDelta());
   }
   renderer.render(scene, camera);
   // stats.update();
@@ -262,7 +317,7 @@ function loadIntroText() {
       new THREE.MeshPhongMaterial({ color: 0x171f27, flatShading: true }),
       new THREE.MeshPhongMaterial({ color: 0xffffff }),
     ];
-    const titleGeo = new TextGeometry('MekaHero', {
+    const titleGeo = new TextGeometry('Mekahero', {
       font: font,
       size: 0.08,
       height: 0.01,
@@ -273,7 +328,164 @@ function loadIntroText() {
     scene.add(titleText);
   });
 
+  loader.load('fonts/helvatica.json', function (font) {
+    const textMaterials = [
+      new THREE.MeshPhongMaterial({ color: 0x171f27, flatShading: true }),
+      new THREE.MeshPhongMaterial({ color: 0xffffff }),
+    ];
+    // const subTitleGeo = new TextGeometry(
+    //   'Web Designer / Developer / Content Creator',
+    //   {
+    //     font: font,
+    //     size: 0.018,
+    //     height: 0,
+    //   }
+    // );
+    subtitleText = new THREE.Mesh(subTitleGeo, textMaterials);
+    subtitleText.rotation.y = Math.PI * 0.5;
+    subtitleText.position.set(-0.255, 0.5, 0.5);
+    scene.add(subtitleText);
+  });
 }
+
+function switchTheme(themeType) {
+  if (themeType === 'dark') {
+    lightSwitch.rotation.z = Math.PI / 7;
+    document.body.classList.remove('light-theme');
+    document.body.classList.add('dark-theme');
+
+    // main lights
+    gsap.to(roomLight.color, {
+      r: 0.27254901960784313,
+      g: 0.23137254901960785,
+      b: 0.6862745098039216,
+    });
+    gsap.to(ambientLight.color, {
+      r: 0.17254901960784313,
+      g: 0.23137254901960785,
+      b: 0.6862745098039216,
+    });
+    gsap.to(roomLight, {
+      intensity: 1.5,
+    });
+    gsap.to(ambientLight, {
+      intensity: 0.3,
+    });
+
+    // fan lights
+    gsap.to(fanLight5, {
+      distance: 0.07,
+    });
+
+    // text color
+    gsap.to(titleText.material[0].color, {
+      r: 8,
+      g: 8,
+      b: 8,
+      duration: 0,
+    });
+    gsap.to(titleText.material[1].color, {
+      r: 5,
+      g: 5,
+      b: 5,
+      duration: 0,
+    });
+    gsap.to(subtitleText.material[0].color, {
+      r: 8,
+      g: 8,
+      b: 8,
+      duration: 0,
+    });
+    gsap.to(subtitleText.material[1].color, {
+      r: 5,
+      g: 5,
+      b: 5,
+      duration: 0,
+    });
+
+    // text light
+    gsap.to(pointLight1, {
+      intensity: 0.6,
+    });
+    gsap.to(pointLight2, {
+      intensity: 0.6,
+    });
+    gsap.to(pointLight3, {
+      intensity: 0.6,
+    });
+    gsap.to(pointLight4, {
+      intensity: 0.6,
+    });
+  } else {
+    lightSwitch.rotation.z = 0;
+    document.body.classList.remove('dark-theme');
+    document.body.classList.add('light-theme');
+
+    // main light
+    gsap.to(roomLight.color, {
+      r: 1,
+      g: 1,
+      b: 1,
+    });
+    gsap.to(ambientLight.color, {
+      r: 1,
+      g: 1,
+      b: 1,
+    });
+    gsap.to(roomLight, {
+      intensity: 2.5,
+    });
+    gsap.to(ambientLight, {
+      intensity: 0.6,
+    });
+
+    // fan light
+    gsap.to(fanLight5, {
+      distance: 0.05,
+    });
+
+    // text color
+    gsap.to(titleText.material[0].color, {
+      r: 0.09019607843137255,
+      g: 0.12156862745098039,
+      b: 0.15294117647058825,
+      duration: 0,
+    });
+    gsap.to(titleText.material[1].color, {
+      r: 1,
+      g: 1,
+      b: 1,
+      duration: 0,
+    });
+    gsap.to(subtitleText.material[0].color, {
+      r: 0.09019607843137255,
+      g: 0.12156862745098039,
+      b: 0.15294117647058825,
+      duration: 0,
+    });
+    gsap.to(subtitleText.material[1].color, {
+      r: 1,
+      g: 1,
+      b: 1,
+      duration: 0,
+    });
+
+    // text light
+    gsap.to(pointLight1, {
+      intensity: 0,
+    });
+    gsap.to(pointLight2, {
+      intensity: 0,
+    });
+    gsap.to(pointLight3, {
+      intensity: 0,
+    });
+    gsap.to(pointLight4, {
+      intensity: 0,
+    });
+  }
+}
+
 function enableOrbitControls() {
   controls.enabled = true;
 }
@@ -481,12 +693,20 @@ function init3DWorldClickListeners() {
       }
 
       if (
-        intersect.object.name === 'Book'
-
+        intersect.object.name === 'Book' ||
+        intersect.object.name === 'Book001'
       ) {
         disableOrbitControls();
         cameraToAbout();
         gsap.delayedCall(1.5, enableCloseBtn);
+      }
+
+      if (
+        intersect.object.name === 'SwitchBoard' ||
+        intersect.object.name === 'Switch'
+      ) {
+        theme = newTheme;
+        switchTheme(theme);
       }
     });
   });
@@ -506,6 +726,12 @@ function initResponsive(roomScene) {
       y: 0,
       z: 1.57,
     };
+
+    // rect light
+    // rectLight.width = 0.406;
+    // rectLight.height = 0.3;
+    // rectLight.position.z = -0.34;
+
     // project
     projectsCameraPos = {
       x: 1.1,
